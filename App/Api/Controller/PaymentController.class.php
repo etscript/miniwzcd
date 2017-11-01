@@ -283,7 +283,7 @@ class PaymentController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
 			exit();
 		}
-		$res = M('user_auth')->where('uid='.$uid)->getField();
+		$res = M('user_auth')->where('uid='.$uid)->select();
 		if(!$res){
 			$temp['times'] = intval($userinfo['times']) + 1;
 			M('user')->where('uid='.$uid)->save($temp);
@@ -407,7 +407,8 @@ class PaymentController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'余额不足，请先充值！'));
 			exit();
 		}
-		$data['amount'] = floatval($order['amount']) - floatval($user_amount);
+		$data['amount'] = floatval($user_amount) - floatval($order['amount']);
+		$data['status'] = 50;
 		M('user')->where('uid='.$uid)->save($data);
 		echo json_encode(array('status'=>1,'err'=>'支付成功！'));
 		exit();

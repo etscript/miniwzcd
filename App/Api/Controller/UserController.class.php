@@ -367,23 +367,28 @@ class UserController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
 			exit();
 		}
-		$order = M('order')->where('uid='.intval($_REQUEST['userId']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->getField('id');
-		if($order){
-			echo json_encode(array('status'=>0,'err'=>'您还有未支付订单！'));
-			exit();
-		}
+		// $order = M('order')->where('uid='.intval($_REQUEST['userId']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->getField('id');
+		// if($order){
+		// 	echo json_encode(array('status'=>0,'err'=>'您还有未支付订单！'));
+		// 	exit();
+		// }
 		$ppileid = intval($_REQUEST['ppileid']);
 		if(!$ppileid){
 			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
 			exit();
 		}
-
-		$car_number = trim($_REQUEST['car_number']);
-		$car_id = M('user_car')->where('uid='.$uid.' AND car_number="'.$car_number.'"')->getField('id');
-		if(!$car_id){
-			echo json_encode(array('status'=>0,'err'=>'请选择车型！'));
+		$zhuang_status = $this->getStatus($sid, $ppileid);
+		if($zhuang_status == 0){
+			echo json_encode(array('status'=>0,'err'=>'此桩正在充电，请换另一个桩！'));
 			exit();
 		}
+		$car_number = trim($_REQUEST['car_number']);
+		$car_id = 0;
+		// $car_id = M('user_car')->where('uid='.$uid.' AND car_number="'.$car_number.'"')->getField('id');
+		// if(!$car_id){
+		// 	echo json_encode(array('status'=>0,'err'=>'请选择车型！'));
+		// 	exit();
+		// }
 		$ctype = intval($_REQUEST['ctype']);
 		if(!$ctype){
 			echo json_encode(array('status'=>0,'err'=>'请选择是否充满！'));
@@ -392,7 +397,7 @@ class UserController extends PublicController {
 		if($ctype == 1){
 			$amount = 0;
 		}else if($ctype == 2){
-			$amount = floatval($_REQUEST['amount']);
+			$amount = $_REQUEST['amount'];
 			$ctype = 0;
 			if(!$amount){
 				echo json_encode(array('status'=>0,'err'=>'请填写预充金额！'));
@@ -411,10 +416,10 @@ class UserController extends PublicController {
 			$signin = 1;
 		}else{
 			$signin = 0;
-			if($userinfo['times'] == 3){
-				echo json_encode(array('status'=>0,'err'=>'请先实名认证！'));
-				exit();
-			}
+			// if($userinfo['times'] >= 3){
+			// 	echo json_encode(array('status'=>0,'err'=>'请先实名认证！'));
+			// 	exit();
+			// }
 		}
 		
 		//发送请求
@@ -441,6 +446,44 @@ class UserController extends PublicController {
         	echo json_encode(array('status'=>0,'err'=>$arr[2],'errinfo'=>$arr));
 			exit();
         }
+	}
+
+	//检验是否可以充电
+	public function getStatus($sid, $ppileid){
+		if(!$ppileid){
+			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
+			exit();
+		}
+		$url = "http://www.indchina.com:7080/exdata?SID=".$sid."&OP=R";
+        $post_data = "15\r\nppileid".$ppileid."\r\npCommand".$ppileid."\r\npuserid".$ppileid."\r\npcarid".$ppileid."\r\npleavetime".$ppileid."\r\npstart_time".$ppileid."\r\npguarante".$ppileid."\r\npbalance".$ppileid."\r\npamount".$ppileid."\r\npcurrent".$ppileid."\r\npstartpower".$ppileid."\r\npnowpower".$ppileid."\r\npmonamount".$ppileid."\r\nppowerunit".$ppileid."\r\npbithandle".$ppileid;
+        //$post_data = "3\r\n桩1号outCommand\r\nCom1Error\r\nCom2Error";
+        $headers = array();
+        $headers[] = 'Content-type: text/plain;charset=UTF-8';
+        $curls = curl_init();
+        curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curls, CURLOPT_URL, $url);
+        curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
+        //post数据
+        curl_setopt($curls, CURLOPT_POST, 1);
+        //post的变量
+        curl_setopt($curls, CURLOPT_POSTFIELDS, $post_data);
+        $outdata = curl_exec($curls);
+        curl_close($curls);
+        $aa = explode("\r\n", $outdata);
+        if($arr[0] == 'ERROR'){
+        	return 0;
+        	exit();
+        }
+        $chong_bit = decbin($aa[16]);
+        $is_shou = substr($chong_bit,8,1);
+        if($is_shou == 0){
+        	return 1;
+			exit();
+        }else{
+        	return 0;
+        	exit();
+        }
+        
 	}
 
 	 /**
@@ -499,16 +542,26 @@ class UserController extends PublicController {
         $outdata = curl_exec($curls);
         curl_close($curls);
         $aa = explode("\r\n", $outdata);
-        $chong_bit = decbin($aa[14]);
-        $is_end = substr($chong_bit,25,1);
+        if($arr[0] == 'ERROR'){
+        	echo json_encode(array('status'=>15,'err'=>''));
+			exit();
+        }
+        $chong_bit = decbin($aa[16]);
+        // dump($aa[16]);
+        $is_shou = substr($chong_bit,8,1);
+        if($is_shou == 0){
+        	echo json_encode(array('status'=>2,'err'=>''));
+			exit();
+        }
+        $is_end = substr($chong_bit,0,1);
         if($is_end == 0){
         	echo json_encode(array('status'=>0,'err'=>'正在充电！'));
 			exit();
         }
         $arr = array();
         $arr['is_end'] = 1;
-        $arr['amount'] = $aa[12];
-        $arr['chong_time'] = floatval($aa[11]) - floatval($aa[10]);
+        $arr['amount'] = $aa[14];
+        $arr['chong_time'] = floatval($aa[13]) - floatval($aa[11]);
         echo json_encode(array('status'=>1,'info'=>$arr));
 		exit();
     }
@@ -518,10 +571,10 @@ class UserController extends PublicController {
     	$uid = intval($_REQUEST['userId']);
 		$sid = $_REQUEST['sid'];
 		$userinfo = M('user')->where('id='.intval($uid).' AND del=0')->find();
-		if (!$userinfo) {
-			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
-			exit();
-		}
+		// if (!$userinfo) {
+		// 	echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
+		// 	exit();
+		// }
 		$ppileid = intval($_REQUEST['ppileid']);
 		if(!$ppileid){
 			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
@@ -543,7 +596,7 @@ class UserController extends PublicController {
         $outdata = curl_exec($curls);
         curl_close($curls);
         $aa = explode("\r\n", $outdata);
-        $temp_userid = intval($aa[2]);
+        $temp_userid = intval($aa[4]);
         //判断是否有用户在使用此桩
         if(!$temp_userid){
         	echo json_encode(array('status'=>1,'err'=>''));
@@ -635,6 +688,43 @@ class UserController extends PublicController {
         curl_close($curls);
         $arr = explode("\r\n", $outdata);
         return $arr;
+    }
+
+    //获取充电详情
+    public function getCurrent(){
+		$sid = $_REQUEST['sid'];
+		$ppileid = intval($_REQUEST['ppileid']);
+		if(!$ppileid){
+			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
+			exit();
+		}
+		$url = "http://www.indchina.com:7080/exdata?SID=".$sid."&OP=R";
+        $post_data = "15\r\nppileid".$ppileid."\r\npCommand".$ppileid."\r\npuserid".$ppileid."\r\npcarid".$ppileid."\r\npleavetime".$ppileid."\r\npstart_time".$ppileid."\r\npguarante".$ppileid."\r\npbalance".$ppileid."\r\npamount".$ppileid."\r\npcurrent".$ppileid."\r\npstartpower".$ppileid."\r\npnowpower".$ppileid."\r\npmonamount".$ppileid."\r\nppowerunit".$ppileid."\r\npbithandle".$ppileid;
+        //$post_data = "3\r\n桩1号outCommand\r\nCom1Error\r\nCom2Error";
+        $headers = array();
+        $headers[] = 'Content-type: text/plain;charset=UTF-8';
+        $curls = curl_init();
+        curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curls, CURLOPT_URL, $url);
+        curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
+        //post数据
+        curl_setopt($curls, CURLOPT_POST, 1);
+        //post的变量
+        curl_setopt($curls, CURLOPT_POSTFIELDS, $post_data);
+        $outdata = curl_exec($curls);
+        curl_close($curls);
+        $aa = explode("\r\n", $outdata);
+        if($arr[0] == 'ERROR'){
+        	echo json_encode(array('status'=>15,'err'=>''));
+			exit();
+        }
+        // $chong_bit = decbin($aa[16]);
+        // $is_shou = substr($chong_bit,8,1);
+        $current = $aa[14];
+        $start = $aa[13];
+        $dianliu = $aa[12];
+        echo json_encode(array('status'=>1,'current'=>$current,'start'=>$start,'dianliu'=>$dianliu));
+		exit();
     }
 
 }
