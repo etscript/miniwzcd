@@ -16,7 +16,7 @@ class UserController extends PublicController {
 		}
 
 		//获取会员充电电量
-		$info['charge'] = floatval(M('charge_log')->where('state=3 AND uid='.intval($uid))->getField('SUM(degree)'));
+		$info['charge'] = floatval(M('order')->where('uid='.intval($uid))->getField('SUM(chong_time)'));
 
 		//会员认证资料提交情况
 		$userauth = M('user_auth')->where('uid='.intval($uid))->find();
@@ -93,16 +93,16 @@ class UserController extends PublicController {
 		}
 		$limit = intval($page*10)-10;
 
-		$list = M('charge_log')->where('state>0 AND uid='.intval($uid))->order('addtime desc')->limit($limit.',10')->select();
+		$list = M('order')->where('order_type=1 AND uid='.intval($uid))->order('addtime desc')->select();
 		foreach ($list as $k => $v) {
 			$list[$k]['addtime'] = date("Y-m-d H:i:s",$v['addtime']);
-			$list[$k]['cplcode'] = M('charge_pile')->where('id='.intval($v['cplid']))->getField('numbers');
-			$long_time = ceil($v['long_time']/60);
-			if ($long_time<1) {
-				$list[$k]['long_time'] = $v['long_time'].'分钟';
-			}else {
-				$list[$k]['long_time'] = $long_time.'小时';
-			}
+			// $list[$k]['cplcode'] = M('charge_pile')->where('id='.intval($v['cplid']))->getField('numbers');
+			// $long_time = ceil($v['long_time']/60);
+			// if ($long_time<1) {
+			// 	$list[$k]['long_time'] = $v['long_time'].'分钟';
+			// }else {
+			// 	$list[$k]['long_time'] = $long_time.'小时';
+			// }
 		}
 
 		echo json_encode(array('status'=>1,'list'=>$list));
@@ -367,11 +367,11 @@ class UserController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
 			exit();
 		}
-		// $order = M('order')->where('uid='.intval($_REQUEST['userId']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->getField('id');
-		// if($order){
-		// 	echo json_encode(array('status'=>0,'err'=>'您还有未支付订单！'));
-		// 	exit();
-		// }
+		$order = M('order')->where('uid='.intval($_REQUEST['userId']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->getField('id');
+		if($order){
+			echo json_encode(array('status'=>3,'order_id'=>$order));
+			exit();
+		}
 		$ppileid = intval($_REQUEST['ppileid']);
 		if(!$ppileid){
 			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
@@ -548,11 +548,11 @@ class UserController extends PublicController {
         }
         $chong_bit = decbin($aa[16]);
         // dump($aa[16]);
-        $is_shou = substr($chong_bit,8,1);
-        if($is_shou == 0){
-        	echo json_encode(array('status'=>2,'err'=>''));
-			exit();
-        }
+   //      $is_shou = substr($chong_bit,8,1);
+   //      if($is_shou == 0){
+   //      	echo json_encode(array('status'=>2,'err'=>''));
+			// exit();
+   //      }
         $is_end = substr($chong_bit,0,1);
         if($is_end == 0){
         	echo json_encode(array('status'=>0,'err'=>'正在充电！'));

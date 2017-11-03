@@ -23,7 +23,7 @@
     </div>
     
     <div class="aaa_pts_3">
-      <form name='form' action="{:U('index')}" method='get'>
+      <!-- <form name='form' action="{:U('index')}" method='get'>
       <div class="pro_4 bord_1">
         <div class="pro_5">
             支付类型：
@@ -61,13 +61,13 @@
 		      </div>
          <div class="pro_6"><input type="button" class="aaa_pts_web_3" value="搜 索" style="margin:0;" onclick="product_option();"></div>
       </div>
-      </form>
+      </form> -->
       <table class="pro_3">
          <tr class="tr_1">  
            <td style="width:120px;">订单ID</td>
            <td>充电会员</td>         
            <td>总金额</td>
-           <td>支付类型</td>
+           <!-- <td>支付类型</td> -->
            <td style="width:150px;">订单状态</td>
            <td style="width:180px;">订单时间</td>
            <td style="width:150px;">订单类型</td>
@@ -78,10 +78,10 @@
 		      <td>{$order.id}</td>
           <td>{$order.u_name}</td>
           <td>{$order.price}</td>
-		      <td>
+		      <!-- <td>
             <if condition="$order.type eq 'weixin'">微信支付</if>
             <if condition="$order.type eq 'amount'">余额支付</if>
-          </td>
+          </td> -->
 		      <td class="status">
   		   	<if condition="$order.back eq 1"><font style="color:red">申请退款</font>
   		   	<elseif condition="$order.back eq 2" /><font style="color:#900">已退款</font>

@@ -6,7 +6,7 @@ class WxpayController extends Controller{
     public function _initialize(){
     	//php 判断http还是https
     	$this->http_type = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
-		vendor('WeiXinpay.wxpay');
+		vendor('wxpay.wxpay');
 	}
 
 	//***************************
@@ -203,6 +203,7 @@ class WxpayController extends Controller{
 		$input->SetTrade_type("JSAPI");
 		$input->SetOpenid($openId);
 		$order = \WxPayApi::unifiedOrder($input);
+		// dump($order);
 		//echo '<font color="#f00"><b>统一下单支付单信息</b></font><br/>';
 		//printf_info($order);
 		$arr = array();
@@ -247,8 +248,8 @@ class WxpayController extends Controller{
 		/*******解决屠涂同一订单重复支付问题 lisa**********/
 		$data['order_sn'] = $this->build_order_no();//生成唯一订单号
 		$data['order_type'] = 2;
-		$data['price']=floatval(600);
-	    $data['amount']=floatval(600);
+		$data['price']=floatval(500);
+	    $data['amount']=floatval(500);
 
 		$result = M('order')->add($data);
 		if(!$result){
@@ -286,7 +287,7 @@ class WxpayController extends Controller{
 		$input->SetBody($desc);
 		$input->SetAttach($desc);
 		$input->SetOut_trade_no(trim($data['order_sn']));
-		$input->SetTotal_fee(floatval($data['amount'])*100);
+		$input->SetTotal_fee(floatval($data['amount'])*100));
 		$input->SetTime_start(date("YmdHis"));
 		$input->SetTime_expire(date("YmdHis", time() + 3600));
 		$input->SetGoods_tag($desc);
@@ -370,17 +371,10 @@ class WxpayController extends Controller{
 		$up = array();
 		$up['price_h'] = sprintf("%.2f",floatval($total_fee/100));
 		$up['type'] = $pay_type;
-		$up['status'] = 40;
+		$up['status'] = 50;
 		$up['trade_no'] = $trade_no;
 		$res = M('order')->where('order_sn="'.$order_sn.'"')->save($up);
 		if ($res) {
-			//处理优惠券
-			if (intval($check_info['vid'])) {
-				$vou_info = M('user_voucher')->where('uid='.intval($check_info['uid']).' AND vid='.intval($check_info['vid']))->find();
-				if (intval($vou_info['status'])==1) {
-					M('user_voucher')->where('id='.intval($vou_info['id']))->save(array('status'=>2));
-				}
-			}
 
 			//增加 充值记录
 			$add = array();
@@ -429,7 +423,7 @@ class WxpayController extends Controller{
 		$uinfo = M('user')->where('id='.intval($uid).' AND cash_state=0')->find();
 		$udata = array();
 		if ($uinfo) {
-			$udata['amount'] = floatval($uinfo['amount'])+100;
+			// $udata['amount'] = floatval($uinfo['amount'])+100;
 			$udata['cash_money'] = floatval($uinfo['cash_money'])+500;
 			$udata['cash_state'] = 1;
 		}

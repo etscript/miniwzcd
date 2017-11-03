@@ -15,6 +15,7 @@ class IndexController extends PublicController {
 
         //判断会员是否有未完成的订单
         $is_order = 0;$order_id = 0;
+        // dump($_REQUEST['uid']); 
         $order = M('order')->where('uid='.intval($_REQUEST['uid']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->getField('id');
         if (intval($order)>0) {
             $is_order = 1;

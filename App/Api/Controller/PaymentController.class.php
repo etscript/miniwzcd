@@ -286,7 +286,7 @@ class PaymentController extends PublicController {
 		$res = M('user_auth')->where('uid='.$uid)->select();
 		if(!$res){
 			$temp['times'] = intval($userinfo['times']) + 1;
-			M('user')->where('uid='.$uid)->save($temp);
+			M('user')->where('id='.$uid)->save($temp);
 		}
 		$order=M("order");
 
@@ -295,8 +295,10 @@ class PaymentController extends PublicController {
 		  	$qz=C('DB_PREFIX');//前缀		  	
 			$data['uid']=intval($uid);
 			$data['amount'] = floatval($_REQUEST['amount']);
+			$data['chong_time'] = floatval($_REQUEST['chong_time']);
 			$data['addtime']=time();
 			$data['del']=0;
+			$data['order_type']=1;
 			$data['status']=10;
 			$data['order_sn']=$this->build_order_no();//生成唯一订单号
 
@@ -395,21 +397,24 @@ class PaymentController extends PublicController {
 	}
 
 	public function pay_now2(){
-    	$uid = intval($_REQUEST['userId']);
+    	$uid = intval($_REQUEST['uid']);
+    	$order_id = intval($_REQUEST['order_id']);
+    	$order_sn = $_REQUEST['order_sn'];
 		$userinfo = M('user')->where('id='.intval($uid).' AND del=0')->find();
 		if (!$userinfo) {
 			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
 			exit();
 		}
 		$order = M('order')->where("id=".intval($order_id)." AND order_sn='".$order_sn."' AND del=0")->find();
-		$user_amount = M('user')->where('uid='.$uid)->getField('amount');
+		$user_amount = M('user')->where('id='.$uid)->getField('amount');
 		if(floatval($order['amount']) > floatval($user_amount)){
 			echo json_encode(array('status'=>0,'err'=>'余额不足，请先充值！'));
 			exit();
 		}
 		$data['amount'] = floatval($user_amount) - floatval($order['amount']);
-		$data['status'] = 50;
-		M('user')->where('uid='.$uid)->save($data);
+		M('user')->where('id='.$uid)->save($data);
+		$temp['status'] = 50;
+		M('order')->where('id='.$order_id)->save($temp);
 		echo json_encode(array('status'=>1,'err'=>'支付成功！'));
 		exit();
 
