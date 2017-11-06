@@ -294,7 +294,7 @@ class OrderController extends PublicController {
 	}
 
 	public function details(){
-		$uid = intval($_REQUEST['userId']);
+		$uid = intval($_REQUEST['userid']);
 		$userinfo = M('user')->where('id='.intval($uid).' AND del=0')->find();
 		if (!$userinfo) {
 			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));

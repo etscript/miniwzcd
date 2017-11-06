@@ -377,11 +377,11 @@ class UserController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
 			exit();
 		}
-		$zhuang_status = $this->getStatus($sid, $ppileid);
-		if($zhuang_status == 0){
-			echo json_encode(array('status'=>0,'err'=>'此桩正在充电，请换另一个桩！'));
-			exit();
-		}
+		// $zhuang_status = $this->getStatus($sid, $ppileid);
+		// if($zhuang_status == 0){
+		// 	echo json_encode(array('status'=>0,'err'=>'此桩正在充电，请换另一个桩！'));
+		// 	exit();
+		// }
 		$car_number = trim($_REQUEST['car_number']);
 		$car_id = 0;
 		// $car_id = M('user_car')->where('uid='.$uid.' AND car_number="'.$car_number.'"')->getField('id');
@@ -474,8 +474,13 @@ class UserController extends PublicController {
         	return 0;
         	exit();
         }
-        $chong_bit = decbin($aa[16]);
-        $is_shou = substr($chong_bit,8,1);
+        $chong_bit = decbin(intval($aa[16]));
+        $is_shou = intval(substr($chong_bit,-9,1));
+        if($is_shou == 1){
+        	$is_shou = 1;
+        }else{
+        	$is_shou = 0;
+        }
         if($is_shou == 0){
         	return 1;
 			exit();
@@ -546,24 +551,27 @@ class UserController extends PublicController {
         	echo json_encode(array('status'=>15,'err'=>''));
 			exit();
         }
-        $chong_bit = decbin($aa[16]);
+        $chong_bit = decbin(intval($aa[16]));
+        // dump($aa);
         // dump($aa[16]);
    //      $is_shou = substr($chong_bit,8,1);
    //      if($is_shou == 0){
    //      	echo json_encode(array('status'=>2,'err'=>''));
 			// exit();
    //      }
-        $is_end = substr($chong_bit,0,1);
-        if($is_end == 0){
+        $is_end = substr($chong_bit,-1,1);
+        if($is_end == 1){
+        	$arr = array();
+	        $arr['is_end'] = 1;
+	        $arr['amount'] = $aa[14];
+	        $arr['chong_time'] = floatval($aa[13]) - floatval($aa[12]);
+	        echo json_encode(array('status'=>1,'info'=>$arr));
+			exit();
+        }else{
         	echo json_encode(array('status'=>0,'err'=>'正在充电！'));
 			exit();
         }
-        $arr = array();
-        $arr['is_end'] = 1;
-        $arr['amount'] = $aa[14];
-        $arr['chong_time'] = floatval($aa[13]) - floatval($aa[11]);
-        echo json_encode(array('status'=>1,'info'=>$arr));
-		exit();
+       
     }
 
      //扫码
@@ -606,7 +614,8 @@ class UserController extends PublicController {
         	echo json_encode(array('status'=>2,'err'=>'此桩正在充电，请换另一个桩！'));
 			exit();
         }else{
-        	$res = $this->openDoor($uid, $ppileid, $sid);
+        	// $res = $this->openDoor($uid, $ppileid, $sid);
+        	$res = 1;
         	if($res == 1){
         		echo json_encode(array('status'=>1,'err'=>'重开门成功！'));
 				exit();
@@ -720,9 +729,13 @@ class UserController extends PublicController {
         }
         // $chong_bit = decbin($aa[16]);
         // $is_shou = substr($chong_bit,8,1);
-        $current = $aa[14];
-        $start = $aa[13];
-        $dianliu = $aa[12];
+        $current = round($aa[13],2);
+        $start = round($aa[12],2);
+        $dianliu = round($aa[11],2);
+        // dump($aa);
+        // dump($current);
+        // dump($start);
+        // dump($dianliu);
         echo json_encode(array('status'=>1,'current'=>$current,'start'=>$start,'dianliu'=>$dianliu));
 		exit();
     }
