@@ -290,11 +290,18 @@ class PaymentController extends PublicController {
 		}
 		$order=M("order");
 
+		$temp2 = M('order')->where('uid='.$uid.' AND status=10 AND order_type=1')->select();
+		if($temp2){
+			echo json_encode(array('status'=>0,'arr'=>''));
+			exit();	
+		}
+
 		//生成订单
 		  try {
 		  	$qz=C('DB_PREFIX');//前缀		  	
 			$data['uid']=intval($uid);
 			$data['amount'] = floatval($_REQUEST['amount']);
+			$data['price'] = floatval($_REQUEST['amount']);
 			$data['chong_time'] = floatval($_REQUEST['chong_time']);
 			$data['addtime']=time();
 			$data['del']=0;

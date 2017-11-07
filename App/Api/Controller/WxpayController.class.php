@@ -287,7 +287,7 @@ class WxpayController extends Controller{
 		$input->SetBody($desc);
 		$input->SetAttach($desc);
 		$input->SetOut_trade_no(trim($data['order_sn']));
-		$input->SetTotal_fee(floatval($data['amount'])*100));
+		$input->SetTotal_fee(floatval($data['amount'])*100);
 		$input->SetTime_start(date("YmdHis"));
 		$input->SetTime_expire(date("YmdHis", time() + 3600));
 		$input->SetGoods_tag($desc);

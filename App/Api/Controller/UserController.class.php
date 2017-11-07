@@ -377,11 +377,11 @@ class UserController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
 			exit();
 		}
-		// $zhuang_status = $this->getStatus($sid, $ppileid);
-		// if($zhuang_status == 0){
-		// 	echo json_encode(array('status'=>0,'err'=>'此桩正在充电，请换另一个桩！'));
-		// 	exit();
-		// }
+		$zhuang_status = $this->getStatus($sid, $ppileid);
+		if($zhuang_status == 0){
+			echo json_encode(array('status'=>0,'err'=>'此桩正在充电，请换另一个桩！'));
+			exit();
+		}
 		$car_number = trim($_REQUEST['car_number']);
 		$car_id = 0;
 		// $car_id = M('user_car')->where('uid='.$uid.' AND car_number="'.$car_number.'"')->getField('id');
@@ -475,12 +475,8 @@ class UserController extends PublicController {
         	exit();
         }
         $chong_bit = decbin(intval($aa[16]));
-        $is_shou = intval(substr($chong_bit,-9,1));
-        if($is_shou == 1){
-        	$is_shou = 1;
-        }else{
-        	$is_shou = 0;
-        }
+        $is_shou = intval(substr($chong_bit,8,1));
+      
         if($is_shou == 0){
         	return 1;
 			exit();
@@ -627,49 +623,50 @@ class UserController extends PublicController {
         exit();
     }
 
+
     //重开门
-     public function openDoor($uid, $ppileid, $sid){
-		$userinfo = M('user')->where('id='.intval($uid).' AND del=0')->find();
-		if (!$userinfo) {
-			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
-			exit();
-		}
-		if(!$ppileid){
-			echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
-			exit();
-		}
-		//发送请求
-		$url = "http://www.indchina.com:7080/exdata?SID=".$sid."&OP=W";
-        //指令ID 会员ID 充电桩ID 车型ID 是否实名认证 请求充电 预计提车时间  押金余额  钱包余额  是否充满  充电金额  是否可以充电
-        $post_data = "12\r\nsetCommand\r\n003\r\nuserid\r\n".$uid."\r\npileid\r\n".$ppileid."\r\ncarid\r\n0\r\nsignin\r\n0\r\nchargeinquire\r\n1\r\nleavetime\r\n0\r\nguarantebalance\r\n0\r\nmoneybalance\r\n0\r\nfullchargetype\r\n0\r\nmoneytypeamount\r\n0\r\nchargeadmit\r\n0";
-        $headers = array();
-        $headers[] = 'Content-type: text/plain;charset=UTF-8';
-        $curls = curl_init();
-        curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($curls, CURLOPT_URL, $url);
-        curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
-        //post数据
-        curl_setopt($curls, CURLOPT_POST, 1);
-        //post的变量
-        curl_setopt($curls, CURLOPT_POSTFIELDS, $post_data);
-        $outdata = curl_exec($curls);
-        curl_close($curls);
-        $arr = explode("\r\n", $outdata);
-        if($arr[0] == 'OK'){
-        	return 1;
-			exit();
-        }else{
-        	return 0;
-			exit();
-        }
-    }
+  //    public function openDoor($uid, $ppileid, $sid){
+		// $userinfo = M('user')->where('id='.intval($uid).' AND del=0')->find();
+		// if (!$userinfo) {
+		// 	echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
+		// 	exit();
+		// }
+		// if(!$ppileid){
+		// 	echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
+		// 	exit();
+		// }
+		// //发送请求
+		// $url = "http://www.indchina.com:7080/exdata?SID=".$sid."&OP=W";
+  //       //指令ID 会员ID 充电桩ID 车型ID 是否实名认证 请求充电 预计提车时间  押金余额  钱包余额  是否充满  充电金额  是否可以充电
+  //       $post_data = "12\r\nsetCommand\r\n003\r\nuserid\r\n".$uid."\r\npileid\r\n".$ppileid."\r\ncarid\r\n0\r\nsignin\r\n0\r\nchargeinquire\r\n1\r\nleavetime\r\n0\r\nguarantebalance\r\n0\r\nmoneybalance\r\n0\r\nfullchargetype\r\n0\r\nmoneytypeamount\r\n0\r\nchargeadmit\r\n0";
+  //       $headers = array();
+  //       $headers[] = 'Content-type: text/plain;charset=UTF-8';
+  //       $curls = curl_init();
+  //       curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
+  //       curl_setopt($curls, CURLOPT_URL, $url);
+  //       curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
+  //       //post数据
+  //       curl_setopt($curls, CURLOPT_POST, 1);
+  //       //post的变量
+  //       curl_setopt($curls, CURLOPT_POSTFIELDS, $post_data);
+  //       $outdata = curl_exec($curls);
+  //       curl_close($curls);
+  //       $arr = explode("\r\n", $outdata);
+  //       if($arr[0] == 'OK'){
+  //       	return 1;
+		// 	exit();
+  //       }else{
+  //       	return 0;
+		// 	exit();
+  //       }
+  //   }
 
     //充电结束重开门
     public function openDoor2(){
     	$uid = intval($_REQUEST['userId']);
 		$sid = $_REQUEST['sid'];
 		$ppileid = intval($_REQUEST['ppileid']);
-		$res = $this->openDoor($uid, $ppileid, $sid);
+		// $res = $this->openDoor($uid, $ppileid, $sid);
         if($res == 1){
     		echo json_encode(array('status'=>1,'err'=>'重开门成功！'));
 			exit();
