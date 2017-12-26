@@ -16,7 +16,7 @@ class IndexController extends PublicController {
         //判断会员是否有未完成的订单
         $is_order = 0;$order_id = 0;
         // dump($_REQUEST['uid']); 
-        $order = M('order')->where('uid='.intval($_REQUEST['uid']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->getField('id');
+        $order = M('order')->where('uid='.intval($_REQUEST['uid']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->limit(1)->getField('id');
         if (intval($order)>0) {
             $is_order = 1;
             $order_id = intval($order);
@@ -42,6 +42,18 @@ class IndexController extends PublicController {
         $arr = $this->get_result($url,$post_data);
 
         if ($arr[0]=='OK') {
+            //更新数据库
+            $check = M('sid')->where('xlh="'.$xlh.'"')->getField('id');
+            if ($check) {
+                $data = array();
+                $data['sid'] = $arr[2];
+                M('sid')->where('id='.intval($check))->save($data);
+            }else{
+                $data = array();
+                $data['xlh'] = $xlh;
+                $data['sid'] = $arr[2];
+                M('sid')->add($data);
+            }
             $arr[2] = substr($arr[2], 4);
             //更新对应序列号数据
             $this->chargedata($xlh,$arr[2]);

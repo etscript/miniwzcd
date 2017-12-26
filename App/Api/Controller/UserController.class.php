@@ -367,7 +367,7 @@ class UserController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
 			exit();
 		}
-		$order = M('order')->where('uid='.intval($_REQUEST['userId']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->getField('id');
+		$order = M('order')->where('uid='.intval($_REQUEST['userId']).' AND status=10 AND back="0" AND del=0 AND order_type=1')->order('addtime desc')->limit(1)->getField('id');
 		if($order){
 			echo json_encode(array('status'=>3,'order_id'=>$order));
 			exit();
@@ -440,6 +440,20 @@ class UserController extends PublicController {
         curl_close($curls);
         $arr = explode("\r\n", $outdata);
         if($arr[0] == 'OK'){
+        	//记录充电桩的充电记录
+        	$temp = M('pileid_status')->where('pileid='.intval($ppileid))->getField('id');
+        	if($temp){
+        		$temp2 = array();
+        		$temp2['uid'] = $uid;
+        		$temp2['status'] = 1;
+        		M('pileid_status')->where('pileid='.intval($ppileid))->save($temp2);
+        	}else{
+        		$temp2 = array();
+        		$temp2['uid'] = $uid;
+        		$temp2['pileid'] = $ppileid;
+        		$temp2['status'] = 1;
+        		M('pileid_status')->where('pileid='.intval($ppileid))->add($temp2);
+        	}
         	echo json_encode(array('status'=>1,'err'=>'正在充电！'));
 			exit();
         }else{
@@ -679,22 +693,22 @@ class UserController extends PublicController {
      //***************************
     //  公共请求远程链接 接口
     //***************************
-    public function get_result($url,$data) {
-        $headers = array();
-        $headers[] = 'Content-type: text/plain;charset=UTF-8';
-        $curls = curl_init();
-        curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($curls, CURLOPT_URL, $url);
-        curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
-        //post数据
-        curl_setopt($curls, CURLOPT_POST, 1);
-        //post的变量
-        curl_setopt($curls, CURLOPT_POSTFIELDS, $data);
-        $outdata = curl_exec($curls);
-        curl_close($curls);
-        $arr = explode("\r\n", $outdata);
-        return $arr;
-    }
+    // public function get_result($url,$data) {
+    //     $headers = array();
+    //     $headers[] = 'Content-type: text/plain;charset=UTF-8';
+    //     $curls = curl_init();
+    //     curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
+    //     curl_setopt($curls, CURLOPT_URL, $url);
+    //     curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
+    //     //post数据
+    //     curl_setopt($curls, CURLOPT_POST, 1);
+    //     //post的变量
+    //     curl_setopt($curls, CURLOPT_POSTFIELDS, $data);
+    //     $outdata = curl_exec($curls);
+    //     curl_close($curls);
+    //     $arr = explode("\r\n", $outdata);
+    //     return $arr;
+    // }
 
     //获取充电详情
     public function getCurrent(){
@@ -736,5 +750,203 @@ class UserController extends PublicController {
         echo json_encode(array('status'=>1,'current'=>$current,'start'=>$start,'dianliu'=>$dianliu));
 		exit();
     }
+
+    public function get_pileid_status(){
+    	$res = M('pileid_status')->where('status=1')->select();
+    	if($res){
+    		foreach($res as $k => $v){
+    			$userinfo = M('user')->where('id='.intval($v['uid']).' AND del=0')->find();
+				if (!$userinfo) {
+					echo json_encode(array('status'=>0,'err'=>'用户信息错误！'));
+					exit();
+				}
+				$ppileid = intval($v['pileid']);
+				if(!$ppileid){
+					echo json_encode(array('status'=>0,'err'=>'充电桩信息异常！'));
+					exit();
+				}
+				$sid = $this->get_sid();
+				$url = "http://www.indchina.com:7080/exdata?SID=".$sid."&OP=R";
+		        $post_data = "15\r\nppileid".$ppileid."\r\npCommand".$ppileid."\r\npuserid".$ppileid."\r\npcarid".$ppileid."\r\npleavetime".$ppileid."\r\npstart_time".$ppileid."\r\npguarante".$ppileid."\r\npbalance".$ppileid."\r\npamount".$ppileid."\r\npcurrent".$ppileid."\r\npstartpower".$ppileid."\r\npnowpower".$ppileid."\r\npmonamount".$ppileid."\r\nppowerunit".$ppileid."\r\npbithandle".$ppileid;
+
+		        $headers = array();
+		        $headers[] = 'Content-type: text/plain;charset=UTF-8';
+		        $curls = curl_init();
+		        curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
+		        curl_setopt($curls, CURLOPT_URL, $url);
+		        curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
+		        //post数据
+		        curl_setopt($curls, CURLOPT_POST, 1);
+		        //post的变量
+		        curl_setopt($curls, CURLOPT_POSTFIELDS, $post_data);
+		        $outdata = curl_exec($curls);
+		        curl_close($curls);
+		        $aa = explode("\r\n", $outdata);
+		        if($arr[0] == 'ERROR'){
+		        	$this->login();
+					exit();
+		        }
+		        $chong_bit = decbin(intval($aa[16]));
+		        // dump($aa);
+		        // dump($aa[16]);
+		   //      $is_shou = substr($chong_bit,8,1);
+		   //      if($is_shou == 0){
+		   //      	echo json_encode(array('status'=>2,'err'=>''));
+					// exit();
+		   //      }
+		        $is_end = substr($chong_bit,-1,1);
+		        if($is_end == 1){
+		        	$arr = array();
+			        $arr['is_end'] = 1;
+			        $arr['amount'] = $aa[14];
+			        $arr['chong_time'] = floatval($aa[13]) - floatval($aa[12]);
+			        $this->payment($v['uid'],$arr['amount'],$arr['chong_time'],$v['id']);
+					exit();
+		        }else{
+		        	echo json_encode(array('status'=>0,'err'=>'正在充电！'));
+					exit();
+		        }
+		    		}
+    	}else{
+    		echo json_encode(array('status'=>0,'err'=>'没有正在充电的桩！'));
+    		exit();
+    	}
+    }
+
+    //从缓存中读取sid
+    public function get_sid(){
+    	$xlh = '50150082794';
+        $pwd = '123456A';
+    	$sid =  M('sid')->where('xlh="'.$xlh.'"')->getField('sid');
+    	return $sid;
+    }
+
+     public function login () {
+        $xlh = '50150082794';
+        $pwd = '123456A';
+        // if (!$xlh || !$pwd) {
+        //     echo json_encode(array('status'=>0,'err'=>'参数错误！'));
+        //     exit();
+        // }
+
+        $url = "http://www.indchina.com:7080/exlog";
+        $post_data = "GRM=".$xlh."&PASS=".$pwd;
+        $arr = $this->get_result($url,$post_data);
+
+        if ($arr[0]=='OK') {
+        	//更新数据库
+            $check = M('sid')->where('xlh="'.$xlh.'"')->getField('id');
+            if ($check) {
+                $data = array();
+                $data['sid'] = $arr[2];
+                M('sid')->where('id='.intval($check))->save($data);
+            }else{
+                $data = array();
+                $data['xlh'] = $xlh;
+                $data['sid'] = $arr[2];
+                M('sid')->add($data);
+            }
+            $arr[2] = substr($arr[2], 4);
+            //更新对应序列号数据
+            $this->chargedata($xlh,$arr[2]);
+        }
+        echo json_encode(array('status'=>1,'data'=>$arr));
+        exit();
+    }
+
+    public function chargedata ($xlh,$sid) {
+        $url = "http://www.indchina.com:7080/exdata?SID=".$sid."&OP=E";
+        $post_data = "NTRPGC";
+        $arrs = $this->get_result($url,$post_data);
+        if ($arrs[0]=='OK') {
+            $data = array();
+            $data['regid'] = $xlh;
+            $data['num'] = $arrs[1];
+            $data['addtime'] = time();
+            array_splice($arrs,0,2);
+            $array = array();
+            foreach ($arrs as $k => $v) {
+                $array[] = trim($v,"$");
+            }
+            $data['name'] = implode("|", $array);
+            $check = M('blname')->where('regid="'.$xlh.'"')->getField('id');
+            if ($check) {
+                M('blname')->where('id='.intval($check))->save($data);
+            }else{
+                M('blname')->add($data);
+            }
+        }
+
+    }
+
+    //***************************
+    //  公共请求远程链接 接口
+    //***************************
+    public function get_result($url,$data) {
+        $headers = array();
+        $headers[] = 'Content-type: text/plain;charset=UTF-8';
+        $curls = curl_init();
+        curl_setopt($curls, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curls, CURLOPT_URL, $url);
+        curl_setopt($curls, CURLOPT_RETURNTRANSFER, 1);
+        //post数据
+        curl_setopt($curls, CURLOPT_POST, 1);
+        //post的变量
+        curl_setopt($curls, CURLOPT_POSTFIELDS, $data);
+        $outdata = curl_exec($curls);
+        curl_close($curls);
+        $arr = explode("\r\n", $outdata);
+        return $arr;
+    }
+
+    public function payment($uid,$amount,$chong_time,$id){
+    	$uid = intval($uid);
+		$userinfo = M('user')->where('id='.intval($uid).' AND del=0')->find();
+		if (!$userinfo) {
+			return '用户信息异常！';
+			exit();
+		}
+		$res = M('user_auth')->where('uid='.$uid)->select();
+		if(!$res){
+			$temp['times'] = intval($userinfo['times']) + 1;
+			M('user')->where('id='.$uid)->save($temp);
+		}
+		$order=M("order");
+
+		//生成订单
+		  try {
+		  	$qz=C('DB_PREFIX');//前缀		  	
+			$data['uid']=intval($uid);
+			$data['amount'] = floatval($amount);
+			$data['price'] = floatval($amount);
+			$data['chong_time'] = floatval($chong_time);
+			$data['addtime']=time();
+			$data['del']=0;
+			$data['order_type']=1;
+			$data['status']=10;
+			$data['order_sn']=$this->build_order_no();//生成唯一订单号
+
+			$result = $order->add($data);
+			if($result){
+				$temp3 = array();
+				$temp3['status'] = 0;
+				M('pileid_status')->where('id='.intval($id))->save($temp3);
+			}
+		  } catch (Exception $e) {
+		  	return $e->getMessage();
+		  	exit();
+		  }
+		  
+		    //把需要的数据返回
+			$arr = array();
+			$arr['order_id'] = $result;
+			$arr['order_sn'] = $data['order_sn'];
+			echo json_encode(array('status'=>1,'arr'=>$arr));
+			exit();	
+    }
+
+    public function build_order_no(){
+		return date('Ymd').substr(implode(NULL, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
+	}
 
 }

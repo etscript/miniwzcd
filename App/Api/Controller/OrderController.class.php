@@ -300,7 +300,7 @@ class OrderController extends PublicController {
 			echo json_encode(array('status'=>0,'err'=>'用户信息异常！'));
 			exit();
 		}
-		$info = M('order')->where('uid='.$uid.' AND status=10')->find();
+		$info = M('order')->where('uid='.$uid.' AND status=10')->limit(1)->find();
 		echo json_encode(array('status'=>1,'info'=>$info));
 		exit();
 	}
