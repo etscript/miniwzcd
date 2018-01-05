@@ -755,6 +755,7 @@ class UserController extends PublicController {
     	$res = M('pileid_status')->where('status=1')->select();
     	if($res){
     		foreach($res as $k => $v){
+
     			$userinfo = M('user')->where('id='.intval($v['uid']).' AND del=0')->find();
 				if (!$userinfo) {
 					echo json_encode(array('status'=>0,'err'=>'用户信息错误！'));
@@ -766,6 +767,8 @@ class UserController extends PublicController {
 					exit();
 				}
 				$sid = $this->get_sid();
+				$sid = substr($sid,4);
+				// dump($sid);exit();
 				$url = "http://www.indchina.com:7080/exdata?SID=".$sid."&OP=R";
 		        $post_data = "15\r\nppileid".$ppileid."\r\npCommand".$ppileid."\r\npuserid".$ppileid."\r\npcarid".$ppileid."\r\npleavetime".$ppileid."\r\npstart_time".$ppileid."\r\npguarante".$ppileid."\r\npbalance".$ppileid."\r\npamount".$ppileid."\r\npcurrent".$ppileid."\r\npstartpower".$ppileid."\r\npnowpower".$ppileid."\r\npmonamount".$ppileid."\r\nppowerunit".$ppileid."\r\npbithandle".$ppileid;
 
