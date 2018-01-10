@@ -627,7 +627,7 @@ class UserController extends PublicController {
         	// $res = $this->openDoor($uid, $ppileid, $sid);
         	$res = 1;
         	if($res == 1){
-        		echo json_encode(array('status'=>1,'err'=>'重开门成功！'));
+        		echo json_encode(array('status'=>3,'err'=>'重开门成功！'));
 				exit();
         	}else{
         		echo json_encode(array('status'=>0,'err'=>'网络异常！'));
